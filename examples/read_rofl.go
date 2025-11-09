@@ -30,10 +30,30 @@ func main() {
 		}
 
 		fmt.Printf("Procesando archivo: %s\n", path)
-		roflData, err := roflparser.New(path, true)
+		roflData, metaErr, statsErrs, err := roflparser.NewFull(path, true)
 		if err != nil {
 			log.Printf("Error leyendo ROFL %s: %v", path, err)
 			return nil
+		}
+
+		// Mostrar errores de validación de Metadata
+		if metaErr != nil {
+			if len(metaErr.MissingFields) > 0 {
+				fmt.Printf("Campos faltantes en Metadata: %v\n", metaErr.MissingFields)
+			}
+			if len(metaErr.ExtraFields) > 0 {
+				fmt.Printf("Campos extra en Metadata: %v\n", metaErr.ExtraFields)
+			}
+		}
+
+		// Mostrar errores de validación de StatsJSON
+		for _, statsErr := range statsErrs {
+			if len(statsErr.MissingFields) > 0 {
+				fmt.Printf("Jugador %d - Campos faltantes en Stats: %v\n", statsErr.PlayerIndex, statsErr.MissingFields)
+			}
+			if len(statsErr.ExtraFields) > 0 {
+				fmt.Printf("Jugador %d - Campos extra en Stats: %v\n", statsErr.PlayerIndex, statsErr.ExtraFields)
+			}
 		}
 
 		// Procesar StatsJSON para que sea un array JSON real
