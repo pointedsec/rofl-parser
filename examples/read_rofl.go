@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	roflparser "rofl-parser"
+	roflparser "github.com/pointedsec/rofl-parser"
 )
 
 func main() {

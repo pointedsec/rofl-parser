@@ -9,9 +9,20 @@ import (
 	"os"
 	"reflect"
 
-	"rofl-parser/model"
+	"github.com/pointedsec/rofl-parser/model"
 )
 
+// NewFromReader permite parsear el archivo desde un io.Reader (por ejemplo, un archivo subido por el usuario)
+func NewFromReader(reader io.Reader, verbose bool) (*model.Rofl, error) {
+	// Lee todo el contenido en memoria
+	allBytes, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, fmt.Errorf("error leyendo datos: %w", err)
+	}
+	return parseRoflBytes(allBytes, verbose)
+}
+
+// New sigue funcionando igual para archivos en disco
 func New(path string, verbose bool) (*model.Rofl, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -19,10 +30,20 @@ func New(path string, verbose bool) (*model.Rofl, error) {
 	}
 	defer file.Close()
 
+	allBytes, err := io.ReadAll(file)
+	if err != nil {
+		return nil, fmt.Errorf("error leyendo archivo completo: %w", err)
+	}
+	return parseRoflBytes(allBytes, verbose)
+}
+
+// parseRoflBytes contiene la lógica principal y se reutiliza para ambos métodos
+func parseRoflBytes(allBytes []byte, verbose bool) (*model.Rofl, error) {
 	r := &model.Rofl{}
+	buf := bytes.NewReader(allBytes)
 
 	// --- Leer Magic y Signature ---
-	if err := binary.Read(file, binary.LittleEndian, &r.Magic); err != nil {
+	if err := binary.Read(buf, binary.LittleEndian, &r.Magic); err != nil {
 		return nil, fmt.Errorf("error leyendo magic: %w", err)
 	}
 	if !bytes.HasPrefix(r.Magic[:], []byte("RIOT")) {
@@ -32,7 +53,7 @@ func New(path string, verbose bool) (*model.Rofl, error) {
 		fmt.Println("Magic OK:", string(r.Magic[:4]))
 	}
 
-	if err := binary.Read(file, binary.LittleEndian, &r.Signature); err != nil {
+	if err := binary.Read(buf, binary.LittleEndian, &r.Signature); err != nil {
 		return nil, fmt.Errorf("error leyendo signature: %w", err)
 	}
 	if verbose {
@@ -40,15 +61,8 @@ func New(path string, verbose bool) (*model.Rofl, error) {
 	}
 
 	// --- Leer longitudes y offsets ---
-	if err := binary.Read(file, binary.LittleEndian, &r.Lengths); err != nil {
+	if err := binary.Read(buf, binary.LittleEndian, &r.Lengths); err != nil {
 		return nil, fmt.Errorf("error leyendo lengths: %w", err)
-	}
-
-	// --- Buscar Metadata JSON en el archivo ---
-	file.Seek(0, io.SeekStart)
-	allBytes, err := io.ReadAll(file)
-	if err != nil {
-		return nil, fmt.Errorf("error leyendo archivo completo: %w", err)
 	}
 
 	// Busca el inicio del JSON por la secuencia específica
@@ -80,26 +94,20 @@ func New(path string, verbose bool) (*model.Rofl, error) {
 	metaBytes := allBytes[start : end+1]
 
 	// --- Validación y análisis del JSON ---
-	// @TODO: Devolver campos faltantes de JSON y errores que puedan ocurrir al parsear
-	// el JSON y el statsJSON
-	// @TODO: Tests unitarios
 	var metaMap map[string]interface{}
 	if err := json.Unmarshal(metaBytes, &metaMap); err != nil {
 		return nil, fmt.Errorf("error parseando metadata JSON: %w", err)
 	}
 
-	// Campos esperados según MetadataJson
 	expectedFields := getJSONFields(reflect.TypeOf(model.MetadataJson{}))
 	missingFields := []string{}
 	extraFields := []string{}
 
-	// Buscar campos faltantes
 	for _, field := range expectedFields {
 		if _, ok := metaMap[field]; !ok {
 			missingFields = append(missingFields, field)
 		}
 	}
-	// Buscar campos extra
 	for key := range metaMap {
 		found := false
 		for _, field := range expectedFields {
@@ -121,12 +129,10 @@ func New(path string, verbose bool) (*model.Rofl, error) {
 		fmt.Printf("Campos extra en JSON: %v\n", extraFields)
 	}
 
-	// Parsear MetadataJson real
 	if err := json.Unmarshal(metaBytes, &r.Metadata); err != nil {
 		return nil, fmt.Errorf("error parseando MetadataJson: %w", err)
 	}
 
-	// Parsear StatsJSON si existe
 	if r.Metadata.StatsJSON != "" {
 		var statsArr []map[string]interface{}
 		if err := json.Unmarshal([]byte(r.Metadata.StatsJSON), &statsArr); err != nil {
@@ -161,7 +167,6 @@ func New(path string, verbose bool) (*model.Rofl, error) {
 				fmt.Printf("Extras: %v\n", extraStats)
 			}
 		}
-		// Si quieres parsear a la estructura real:
 		if err := json.Unmarshal([]byte(r.Metadata.StatsJSON), &r.Metadata.Stats); err != nil {
 			fmt.Printf("Advertencia: no se pudo parsear StatsJSON a PlayerStatsJson: %v\n", err)
 		}
