@@ -23,6 +23,15 @@ func NewFromReader(reader io.Reader, verbose bool) (*model.Rofl, error) {
 	return r, err
 }
 
+// NewFromReaderFull permite parsear el archivo desde un io.Reader y devuelve los errores completos
+func NewFromReaderFull(reader io.Reader, verbose bool) (*model.Rofl, *model.MetadataValidationError, []model.PlayerStatsValidationError, error) {
+	allBytes, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("error leyendo datos: %w", err)
+	}
+	return parseRoflBytes(allBytes, verbose)
+}
+
 // New abre y parsea un archivo .rofl desde la ruta dada
 func New(path string, verbose bool) (*model.Rofl, error) {
 	file, err := os.Open(path)
