@@ -12,7 +12,7 @@ import (
 	"github.com/pointedsec/rofl-parser/model"
 )
 
-// NewFromReader permite parsear el archivo desde un io.Reader (por ejemplo, un archivo subido por el usuario)
+// NewFromReader permite parsear el archivo desde un io.Reader
 func NewFromReader(reader io.Reader, verbose bool) (*model.Rofl, error) {
 	// Lee todo el contenido en memoria
 	allBytes, err := io.ReadAll(reader)
@@ -22,7 +22,7 @@ func NewFromReader(reader io.Reader, verbose bool) (*model.Rofl, error) {
 	return parseRoflBytes(allBytes, verbose)
 }
 
-// New sigue funcionando igual para archivos en disco
+// New abre y parsea un archivo .rofl desde la ruta dada
 func New(path string, verbose bool) (*model.Rofl, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -37,7 +37,7 @@ func New(path string, verbose bool) (*model.Rofl, error) {
 	return parseRoflBytes(allBytes, verbose)
 }
 
-// parseRoflBytes contiene la lógica principal y se reutiliza para ambos métodos
+// parseRoflBytes contiene la lógica principal del parseo
 func parseRoflBytes(allBytes []byte, verbose bool) (*model.Rofl, error) {
 	r := &model.Rofl{}
 	buf := bytes.NewReader(allBytes)

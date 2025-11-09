@@ -15,6 +15,7 @@ Incluye validación de campos, detección de campos faltantes y extra, y convers
 - **Parseo de StatsJSON**: Convierte el campo `statsJson` en un array de estadísticas de jugadores.
 - **Detección de campos faltantes y extra**: Informa qué campos no están presentes y cuáles sobran en el JSON.
 - **Compatible con Go Modules**.
+- **Parseo desde archivos o streams**: Permite procesar archivos `.rofl` tanto desde disco como desde un `io.Reader` (por ejemplo, archivos subidos por el usuario vía API).
 
 ## Instalación
 
@@ -39,6 +40,7 @@ import (
 )
 
 func main() {
+    // Parsear desde archivo en disco
     rofl, err := roflparser.New("ruta/al/archivo.rofl", true)
     if err != nil {
         fmt.Println("Error:", err)
@@ -47,6 +49,33 @@ func main() {
     fmt.Printf("Versión: %s\n", rofl.Metadata.GameVersion)
     fmt.Printf("Duración: %d\n", rofl.Metadata.GameLength)
     fmt.Printf("Stats jugadores: %+v\n", rofl.Metadata.Stats)
+}
+```
+
+### Parsear desde un `io.Reader` (por ejemplo, archivo subido por API)
+
+```go
+package main
+
+import (
+    "fmt"
+    "os"
+    roflparser "github.com/pointedsec/rofl-parser"
+)
+
+func main() {
+    file, err := os.Open("ruta/al/archivo.rofl")
+    if err != nil {
+        panic(err)
+    }
+    defer file.Close()
+
+    rofl, err := roflparser.NewFromReader(file, true)
+    if err != nil {
+        fmt.Println("Error:", err)
+        return
+    }
+    fmt.Printf("Versión: %s\n", rofl.Metadata.GameVersion)
 }
 ```
 
