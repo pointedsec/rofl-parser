@@ -232,3 +232,19 @@ func getJSONFields(t reflect.Type) []string {
 	}
 	return fields
 }
+
+// ParseStatsJsonToPlayerStatsJson recibe un string con el JSON y lo convierte en un slice de PlayerStatsJson.
+// Devuelve nil si hay error de parseo.
+func ParseStatsJsonToPlayerStatsJson(statsJson string) []model.PlayerStatsJson {
+	var playerStats []model.PlayerStatsJson
+	err := json.Unmarshal([]byte(statsJson), &playerStats)
+	if err != nil {
+		return nil
+	}
+	return playerStats
+}
+
+// ParseJSON es una función genérica para parsear JSON en una estructura dada
+func ParseJSON[T any](jsonStr string, out *T) error {
+	return json.Unmarshal([]byte(jsonStr), out)
+}
